@@ -85,6 +85,12 @@ module.exports = generators.Base.extend({
         name: 'npmVersion',
         message: 'NPM version used',
         default: version.major
+      }, {
+        type: 'confirm',
+        name: 'cssify',
+        message: 'Include CSSify for Browserify support',
+        default: false,
+        store: true
       }];
 
       this.prompt(prompts, function (props) {
@@ -128,12 +134,6 @@ module.exports = generators.Base.extend({
         develop: "done-serve --static --develop --port 8080"
       },
       main: "dist/cjs/" + this.props.name,
-      browser: {
-       transform: [ "cssify" ]
-      },
-      browserify: {
-       transform: [ "cssify" ]
-      },
       keywords: this.props.keywords,
       system: {
         main: this.props.name,
@@ -151,7 +151,7 @@ module.exports = generators.Base.extend({
     if(this.props.folder && this.props.folder !== '.') {
       pkgJsonFields.system.directories = { lib: this.props.folder };
     }
-    
+
     if(this.props.npmVersion >= 3) {
       pkgJsonFields.system.npmAlgorithm = 'flat';
     }
@@ -167,7 +167,7 @@ module.exports = generators.Base.extend({
         self.options.packages.devDependencies[name];
     };
 
-    this.fs.writeJSON('package.json', _.extend(pkgJsonFields, this.pkg, {
+    var pkgDeps = {
       dependencies: {
         'can': getDependency('can'),
         'jquery': getDependency('jquery')
@@ -175,7 +175,6 @@ module.exports = generators.Base.extend({
       devDependencies: {
         'documentjs': getDependency('documentjs'),
         'jshint': '^2.9.1',
-        'cssify': '^0.6.0',
         'steal': getDependency('steal'),
         'steal-qunit': getDependency('steal-qunit'),
         'steal-tools': getDependency('steal-tools'),
@@ -184,7 +183,15 @@ module.exports = generators.Base.extend({
         'donejs-cli': getDependency('donejs-cli'),
         'done-serve': getDependency('done-serve')
       }
-    }));
+    };
+
+    if(this.props.cssify) {
+      pkgJsonFields.browser = { transform: [ "cssify" ] };
+      pkgJsonFields.browserify = { transform: [ "cssify" ] };
+      pkgDeps.devDependencies.cssify = '^0.6.0';
+    }
+
+    this.fs.writeJSON('package.json', _.extend(pkgJsonFields, this.pkg, pkgDeps));
 
     this.fs.copy(this.templatePath('static'), this.destinationPath());
     this.fs.copy(this.templatePath('static/.*'), this.destinationPath());
